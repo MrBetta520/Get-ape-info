@@ -15,7 +15,7 @@ with open('ape_abi.json', 'r') as f:
 
 ############################
 # Connect to an Ethereum node
-api_url = ""  # YOU WILL NEED TO PROVIDE THE URL OF AN ETHEREUM NODE
+api_url = "https://ethereum-mainnet.core.chainstack.com/c1482d847918b8f42b57ec46533fc83e"  # YOU WILL NEED TO PROVIDE THE URL OF AN ETHEREUM NODE
 provider = HTTPProvider(api_url)
 web3 = Web3(provider)
 
@@ -28,6 +28,42 @@ def get_ape_info(ape_id):
     data = {'owner': "", 'image': "", 'eyes': ""}
 
     # YOUR CODE HERE
+    try:
+        contract = web3.eth.contract(address=contract_address, abi=abi)
+
+        owner = contract.functions.ownerOf(ape_id).call()
+        data['owner'] = owner
+
+        token_uri = contract.functions.tokenURI(ape_id).call()
+
+        if token_uri.startswith('ipfs://'):
+            ipfs_hash = token_uri[7:]
+            metadata_url = f"https://gateway.pinata.cloud/ipfs/{ipfs_hash}"
+        else:
+            metadata_url = token_uri
+        
+        response = requests.get(metadata_url)
+        response.raise_for_status()
+        
+        metadata = response.json()
+
+        if 'image' in metadata:
+            image_uri = metadata['image']
+            if image_uri.startswith('ipfs://'):
+                image_hash = image_uri[7:]
+                data['image'] = f"https://gateway.pinata.cloud/ipfs/{image_hash}"
+            else:
+                data['image'] = image_uri
+        
+        if 'attributes' in metadata:
+            for attribute in metadata['attributes']:
+                if attribute.get('trait_type') == 'Eyes':
+                    data['eyes'] = attribute.get('value', "")
+                    break
+    
+    except Exception as e:
+        print(f"Error fetching ape info for ID {ape_id}: {str(e)}")
+        pass
 
     assert isinstance(data, dict), f'get_ape_info{ape_id} should return a dict'
     assert all([a in data.keys() for a in
