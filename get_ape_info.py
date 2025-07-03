@@ -41,20 +41,15 @@ def get_ape_info(ape_id):
             metadata_url = f"https://gateway.pinata.cloud/ipfs/{ipfs_hash}"
         else:
             metadata_url = token_uri
-        
+
         response = requests.get(metadata_url)
         response.raise_for_status()
         
         metadata = response.json()
 
         if 'image' in metadata:
-            image_uri = metadata['image']
-            if image_uri.startswith('ipfs://'):
-                image_hash = image_uri[7:]
-                data['image'] = f"https://gateway.pinata.cloud/ipfs/{image_hash}"
-            else:
-                data['image'] = image_uri
-        
+            data['image'] = metadata['image']
+
         if 'attributes' in metadata:
             for attribute in metadata['attributes']:
                 if attribute.get('trait_type') == 'Eyes':
